@@ -20,8 +20,9 @@ def tokenize(code):
     tokens = []
     
     line_start = 0
-    line_number = 1
-    line_end = 0
+    line_number = 1  # Ensure line_number starts at 1
+
+    indent_stack = [0]  # Stack to track indentation levels
 
     column_start = 0
     column_end = 0
@@ -34,9 +35,6 @@ def tokenize(code):
 
     token_re = re.compile(master_pattern)
 
-    
-    indent_stack = [0]  # Stack to track indentation levels
-
     matches = list(token_re.finditer(code))
     total_length = len(matches)
     
@@ -48,32 +46,45 @@ def tokenize(code):
 
         if token_type == "NEWLINE":
             line_start = match.end()
-            line_number += 1
+            line_number += 1  # Increment line_number for each NEWLINE
 
+            # Reset column positions for NEWLINE tokens
             column_start = 0
             column_end = 0
 
             if i + 1 < total_length:
-                next_token = matches[i + 1]
+                next_token = matches[i + 1].lastgroup
 
-                # Skip blank and comment lines
-                if next_token.lastgroup in ("NEWLINE", "COMMENT"):
-                    continue  
+                if next_token not in ("NEWLINE", "COMMENT"):
+                    indent_match = re.match(r"[ \t]*", code[line_start:])
+                    if indent_match:
+                        indent_str = indent_match.group()
+                        if "\t" in indent_str and " " in indent_str:
+                            raise SyntaxError("Mixed tabs and spaces detected for indentation.")
+                        indent_len = len(indent_str.replace("\t", "    "))
 
-                # indentation
-                indent_match = re.match(r"[ \t]*", code[line_start:])
-                if indent_match:
-                    indent = len(indent_match.group().replace("\t", "    "))
-                    if indent > indent_stack[-1]:
-                        indent_stack.append(indent)
-                        tokens.append(("INDENT", indent, line_number, 0, indent))
-                    while indent < indent_stack[-1]:
-                        indent_stack.pop()
-                        tokens.append(("DEDENT", indent, line_number, 0, indent))
+                        if indent_len > indent_stack[-1]:
+                            indent_stack.append(indent_len)
+                            tokens.append(("INDENT", indent_len, line_number, 0, indent_len))
+                        while indent_len < indent_stack[-1]:
+                            indent_stack.pop()
+                            tokens.append(("DEDENT", indent_len, line_number, 0, indent_len))
             continue
 
+        if token_type == "STRING":
+            # Adjust column_end for multi-line strings
+            lines_in_string = token_value.splitlines()
+            if len(lines_in_string) > 1:
+                start_line = line_number
+                end_line = line_number + len(lines_in_string) - 1
+                line_number = end_line
+                line_start = match.end() - len(lines_in_string[-1])
+                column_end = len(lines_in_string[-1])
+                tokens.append((token_type, token_value, start_line, column_start, end_line, column_end))
+                continue
+
         if token_type == "NUMBER":
-            # num validation 
+            # Validate number format before conversion
             if re.fullmatch(r"\d+\.\d+", token_value):
                 token_value = float(token_value)
             elif re.fullmatch(r"\d+", token_value):
@@ -91,7 +102,7 @@ def tokenize(code):
 
         tokens.append((token_type, token_value, line_number, column_start, column_end))
 
-    #  dedents at EOF
+    # Handle remaining dedents at the end of the file
     while len(indent_stack) > 1:
         indent_stack.pop()
         tokens.append(("DEDENT", 0, line_number, 0, 0))

@@ -50,7 +50,6 @@ def tokenize(code):
             line_start = match.end()
             line_number += 1
 
-            # Reset column positions for NEWLINE tokens
             column_start = 0
             column_end = 0
 
@@ -61,7 +60,7 @@ def tokenize(code):
                 if next_token.lastgroup in ("NEWLINE", "COMMENT"):
                     continue  
 
-                # Measure indentation
+                # indentation
                 indent_match = re.match(r"[ \t]*", code[line_start:])
                 if indent_match:
                     indent = len(indent_match.group().replace("\t", "    "))
@@ -74,7 +73,7 @@ def tokenize(code):
             continue
 
         if token_type == "NUMBER":
-            # Validate number format before conversion
+            # num validation 
             if re.fullmatch(r"\d+\.\d+", token_value):
                 token_value = float(token_value)
             elif re.fullmatch(r"\d+", token_value):
@@ -92,7 +91,7 @@ def tokenize(code):
 
         tokens.append((token_type, token_value, line_number, column_start, column_end))
 
-    # Handle remaining dedents at the end of the file
+    #  dedents at EOF
     while len(indent_stack) > 1:
         indent_stack.pop()
         tokens.append(("DEDENT", 0, line_number, 0, 0))

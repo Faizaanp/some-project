@@ -2,10 +2,9 @@ import re
 
 TOKENS = [
     ("KEYWORD", r"\b(def|for|if|else|elif|return|print|in|while|import|from|as|break|continue|class|pass|and|or|not|True|False|None|global|nonlocal|lambda|try|except|finally|raise|with|yield|assert|del|is)\b"),
-    ("NUMBER", r"\b\d+(\.\d+)?([eE][+-]?\d+)?\b"),  # Support for scientific notation
-    ("STRING", r"(\"\"\"([^\"\\]|\\.)*\"\"\"|\'\'\'([^\'\\]|\\.)*\'\'\'|\"([^\"\\]|\\.)*\"|\'([^\'\\]|\\.)*\')"),  # Support for triple-quoted strings
+    ("NUMBER", r"\b\d+(\.\d+)?([eE][+-]?\d+)?\b"),  
+    ("STRING", r"(\"\"\"([^\"\\]|\\.)*\"\"\"|\'\'\'([^\'\\]|\\.)*\'\'\'|\"([^\"\\]|\\.)*\"|\'([^\'\\]|\\.)*\')"),  
     ("IDENT",  r"\b[a-zA-Z_][a-zA-Z0-9_]*\b"),
-    # Order matters: match multi-char operators before single-char ones
     ("SYMBOL", r"(==|!=|<=|>=|\*\*|//|->|:=|[()\[\]{},:;=+\-*/%<>|&^~.])"),
     ("NEWLINE", r"\n"),
     ("SKIP",   r"[ \t]+"),

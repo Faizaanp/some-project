@@ -100,7 +100,7 @@ def gen_expr_js(expr: Expr) -> str:
 
 
 def gen_stmt_js(stmt: Stmt) -> str:
-    """Generate JavaScript code for statements (without indentation - handled by gen_block_js)"""
+    """Generate JavaScript code for statements """
     if isinstance(stmt, VariableAssign):
         value_js = gen_expr_js(stmt.value)
         return f"let {stmt.name} = {value_js};"
@@ -203,7 +203,6 @@ def transpile_to_js(ir_program: Program) -> str:
 
 
 if __name__ == "__main__":
-    # Example usage - demonstrates the new modular structure
     from parser import parse_python_to_ir
     
     python_code = """

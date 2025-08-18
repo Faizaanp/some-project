@@ -131,7 +131,7 @@ def py_exp_to_ir(node: ast.AST) -> Expr:
     elif isinstance(node, ast.Subscript):
         return Subscript(
             value=py_exp_to_ir(node.value),
-            slice=py_exp_to_ir(node.slice)
+            index=py_exp_to_ir(node.slice)
         )
     
     raise NotImplementedError(f"Unknown AST expression node: {type(node).__name__}. ")

@@ -53,7 +53,7 @@ def transpile_python_to_js(python_code: str) -> str:
 
 
 def transpile_examples():
-    """Transpile all Python files in the examples directory"""
+    """all file in examples directory"""
     examples_dir = "examples"
     
     if not os.path.exists(examples_dir):
@@ -75,15 +75,15 @@ def transpile_examples():
                 js_filepath = save_js_output(js_code, filename, f"Transpiled from {filename}")
                 transpiled_files.append(js_filepath)
                 
-                print(f"✅ {filename} -> {os.path.basename(js_filepath)}")
+                print(f"{filename} -> {os.path.basename(js_filepath)}")
             except Exception as e:
-                print(f"❌ Error transpiling {filename}: {e}")
+                print(f" Error transpiling {filename}: {e}")
     
     return transpiled_files
 
 
 def transpile_file(input_filepath: str, output_dir: str = "outputs") -> str:
-    """Transpile a single Python file to JavaScript"""
+    """single file transpilation"""
     if not os.path.exists(input_filepath):
         raise FileNotFoundError(f"Input file not found: {input_filepath}")
     
@@ -99,21 +99,19 @@ def transpile_file(input_filepath: str, output_dir: str = "outputs") -> str:
 
 
 def main():
-    """Main entry point - transpile all example files"""
+    """Main entry point"""
     print("Python to JavaScript Transpiler")
     print("=" * 40)
-    
-    # Transpile all examples
+
     transpiled_files = transpile_examples()
-    
-    # Summary
+
     if transpiled_files:
-        print(f"\n🎉 Successfully transpiled {len(transpiled_files)} files:")
+        print(f"\nSuccessfully transpiled {len(transpiled_files)} files:")
         for filepath in transpiled_files:
-            print(f"   📄 {filepath}")
-        print(f"\n📁 All files saved in 'outputs/' directory")
+            print(f"   {filepath}")
+        print(f"\nAll files saved in 'outputs/' directory")
     else:
-        print("\n⚠️  No files were transpiled.")
+        print("\nNo files were transpiled.")
 
 
 if __name__ == "__main__":

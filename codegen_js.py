@@ -7,8 +7,8 @@ This module generates JavaScript code from our intermediate representation (IR).
 from typing import List
 from ir import (
     Program, Stmt, Expr,
-    VariableAssign, FunctionDef, Return, IfStmt, ForStmt, ExprStmt,
-    Name, Num, Str, Bool, Null, BinOp, Call, Compare, ListExpr
+    VariableAssign, AugAssign, FunctionDef, Return, IfStmt, ForStmt, WhileStmt, ExprStmt,
+    Name, Num, Str, Bool, Null, BinOp, UnaryOp, Subscript, Call, Compare, ListExpr
 )
 
 
@@ -96,6 +96,19 @@ def gen_expr_js(expr: Expr) -> str:
         elts_js = [gen_expr_js(elt) for elt in expr.elts]
         return f"[{', '.join(elts_js)}]"
     
+    elif isinstance(expr, UnaryOp):
+        operand_js = gen_expr_js(expr.operand)
+        # Special handling for 'not' operator
+        if expr.op == '!':
+            return f"!{operand_js}"
+        else:
+            return f"{expr.op}{operand_js}"
+    
+    elif isinstance(expr, Subscript):
+        value_js = gen_expr_js(expr.value)
+        index_js = gen_expr_js(expr.index)
+        return f"{value_js}[{index_js}]"
+    
     raise NotImplementedError(f"Unknown expression type: {type(expr)}")
 
 
@@ -104,6 +117,16 @@ def gen_stmt_js(stmt: Stmt) -> str:
     if isinstance(stmt, VariableAssign):
         value_js = gen_expr_js(stmt.value)
         return f"let {stmt.name} = {value_js};"
+    
+    elif isinstance(stmt, AugAssign):
+        value_js = gen_expr_js(stmt.value)
+        js_op = stmt.op
+        if stmt.op == '**=':
+            return f"{stmt.target} = Math.pow({stmt.target}, {value_js});"
+        elif stmt.op == '//=':
+            return f"{stmt.target} = Math.floor({stmt.target} / {value_js});"
+        else:
+            return f"{stmt.target} {js_op} {value_js};"
     
     elif isinstance(stmt, FunctionDef):
         args_js = ', '.join(stmt.args)
@@ -160,6 +183,11 @@ def gen_stmt_js(stmt: Stmt) -> str:
         else:
             # General for...of loop
             return f"for (let {stmt.target} of {iter_js}) {{\n{body_js}\n}}"
+    
+    elif isinstance(stmt, WhileStmt):
+        test_js = gen_expr_js(stmt.test)
+        body_js = gen_block_js(stmt.body, 1)  # While body gets indent level 1
+        return f"while ({test_js}) {{\n{body_js}\n}}"
     
     elif isinstance(stmt, ExprStmt):
         # Expression statement

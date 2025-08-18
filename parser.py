@@ -8,8 +8,8 @@ import ast
 from typing import List
 from ir import (
     Program, Stmt, Expr,
-    VariableAssign, FunctionDef, Return, IfStmt, ForStmt, ExprStmt,
-    Name, Num, Str, Bool, Null, BinOp, Call, Compare, ListExpr
+    VariableAssign, AugAssign, FunctionDef, Return, IfStmt, ForStmt, WhileStmt, ExprStmt,
+    Name, Num, Str, Bool, Null, BinOp, UnaryOp, Subscript, Call, Compare, ListExpr
 )
 
 
@@ -42,17 +42,39 @@ COMPARE_OPS = {
     ast.NotIn: 'not in'  # Special handling in codegen
 }
 
+UNARY_OPS = {
+    ast.UAdd: '+',
+    ast.USub: '-',
+    ast.Not: '!',
+    ast.Invert: '~'
+}
+
+AUG_OPS = {
+    ast.Add: '+=',
+    ast.Sub: '-=',
+    ast.Mult: '*=',
+    ast.Div: '/=',
+    ast.Mod: '%=',
+    ast.Pow: '**=',
+    ast.FloorDiv: '//=',
+    ast.BitAnd: '&=',
+    ast.BitOr: '|=',
+    ast.BitXor: '^=',
+    ast.LShift: '<<=',
+    ast.RShift: '>>='
+}
+
 
 def py_exp_to_ir(node: ast.AST) -> Expr:
     """Convert Python AST expression to IR expression"""
     if isinstance(node, ast.Constant):
         v = node.value
-        if isinstance(v, (int, float)):
+        if isinstance(v, bool):  
+            return Bool(value=v)
+        elif isinstance(v, (int, float)):
             return Num(value=v)
         elif isinstance(v, str):
             return Str(value=v)
-        elif isinstance(v, bool):
-            return Bool(value=v)
         elif v is None:
             return Null()
         
@@ -68,7 +90,14 @@ def py_exp_to_ir(node: ast.AST) -> Expr:
             raise NotImplementedError(f"Unsupported operator: {node.op}")
         
     elif isinstance(node, ast.Name):
-        return Name(id=node.id)
+        if node.id == 'True':
+            return Bool(value=True)
+        elif node.id == 'False':
+            return Bool(value=False)
+        elif node.id == 'None':
+            return Null()
+        else:
+            return Name(id=node.id)
     
     elif isinstance(node, ast.Call):
         return Call(
@@ -89,7 +118,23 @@ def py_exp_to_ir(node: ast.AST) -> Expr:
         elts = [py_exp_to_ir(elt) for elt in node.elts]
         return ListExpr(elts=elts)
     
-    raise NotImplementedError(f"Unknown AST expression node: {type(node)}")
+    elif isinstance(node, ast.UnaryOp):
+        opType = type(node.op)
+        if opType in UNARY_OPS:
+            return UnaryOp(
+                op=UNARY_OPS[opType],
+                operand=py_exp_to_ir(node.operand)
+            )
+        else:
+            raise NotImplementedError(f"Unsupported unary operator: {node.op}")
+    
+    elif isinstance(node, ast.Subscript):
+        return Subscript(
+            value=py_exp_to_ir(node.value),
+            slice=py_exp_to_ir(node.slice)
+        )
+    
+    raise NotImplementedError(f"Unknown AST expression node: {type(node).__name__}. ")
 
 
 def py_stmt_to_ir(node: ast.AST) -> Stmt:
@@ -99,6 +144,19 @@ def py_stmt_to_ir(node: ast.AST) -> Stmt:
         if len(targets) != 1:
             raise NotImplementedError("Multiple assignment targets are not supported.")
         return VariableAssign(name=targets[0], value=py_exp_to_ir(node.value))
+    
+    elif isinstance(node, ast.AugAssign):
+        if not isinstance(node.target, ast.Name):
+            raise NotImplementedError("Only simple variable targets supported in augmented assignment")
+        opType = type(node.op)
+        if opType in AUG_OPS:
+            return AugAssign(
+                target=node.target.id,
+                op=AUG_OPS[opType],
+                value=py_exp_to_ir(node.value)
+            )
+        else:
+            raise NotImplementedError(f"Unsupported augmented assignment operator: {node.op}")
     
     elif isinstance(node, ast.FunctionDef):
         args = [arg.arg for arg in node.args.args]
@@ -123,11 +181,16 @@ def py_stmt_to_ir(node: ast.AST) -> Stmt:
         body = [py_stmt_to_ir(stmt) for stmt in node.body]
         return ForStmt(target=target, iter=iter_expr, body=body)
     
+    elif isinstance(node, ast.While):
+        test = py_exp_to_ir(node.test)
+        body = [py_stmt_to_ir(stmt) for stmt in node.body]
+        return WhileStmt(test=test, body=body)
+    
     elif isinstance(node, ast.Expr):
         # Expression statement - wrap in ExprStmt
         return ExprStmt(value=py_exp_to_ir(node.value))
     
-    raise NotImplementedError(f"Unknown AST statement node: {type(node)}")
+    raise NotImplementedError(f"Unknown AST statement node: {type(node).__name__}. ")
 
 
 def py_module_to_ir(module: ast.Module) -> Program:

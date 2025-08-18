@@ -35,6 +35,14 @@ class VariableAssign(Stmt):
 
 
 @dataclass
+class AugAssign(Stmt):
+    """Augmented assignment: x += value, x *= value"""
+    target: str
+    op: str
+    value: Expr
+
+
+@dataclass
 class FunctionDef(Stmt):
     """Function definition: def name(args): body"""
     name: str
@@ -61,6 +69,13 @@ class ForStmt(Stmt):
     """For loop: for target in iter: body"""
     target: str
     iter: Expr
+    body: List[Stmt]
+
+
+@dataclass
+class WhileStmt(Stmt):
+    """While loop: while test: body"""
+    test: Expr
     body: List[Stmt]
 
 
@@ -107,6 +122,20 @@ class BinOp(Expr):
     left: Expr
     op: str  
     right: Expr
+
+
+@dataclass
+class UnaryOp(Expr):
+    """Unary operation: op operand ( -x, not x)"""
+    op: str
+    operand: Expr
+
+
+@dataclass
+class Subscript(Expr):
+    """Subscript operation: value[index] ( arr[0])"""
+    value: Expr
+    index: Expr
 
 
 @dataclass
